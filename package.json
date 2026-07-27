@@ -1,0 +1,42 @@
+{
+  "name": "veil-hunt",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Veil Hunt — a 3D asymmetric two-player hide-and-hunt game for the browser",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:client": "vite",
+    "dev:server": "node --import tsx/esm src/server/index.ts",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "start": "node dist/server/server/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "inspect:canvas": "node scripts/inspect-canvas.mjs"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/three": "^0.185.0",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^7.0.0",
+    "vitest": "^4.1.10"
+  }
+}

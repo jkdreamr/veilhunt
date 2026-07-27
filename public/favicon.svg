@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Veil Hunt">
+  <rect width="32" height="32" rx="7" fill="#0b111c"/>
+  <circle cx="16" cy="14" r="7.5" fill="none" stroke="#6feaff" stroke-width="1.6" opacity="0.9"/>
+  <path d="M16 6.5 L16 21.5 M9.6 10.2 L22.4 17.8 M22.4 10.2 L9.6 17.8" stroke="#6feaff" stroke-width="1.1" opacity="0.55"/>
+  <circle cx="16" cy="14" r="2.6" fill="#6feaff"/>
+  <path d="M8 25.5 Q16 22.5 24 25.5" stroke="#ffb45c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+</svg>
