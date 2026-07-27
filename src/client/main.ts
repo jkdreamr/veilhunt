@@ -65,6 +65,7 @@ class App {
   private opponentAway: { present: boolean; name: string; graceSeconds: number } | null = null;
   private countdownShown: number | null = null;
   private audioUnlocked = false;
+  private wakeNoticeTimer: number | null = null;
   /** Overrides driven by the automated test hooks. */
   private testIntent: { mx: number; mz: number; sprint: boolean; crouch: boolean } | null = null;
   private testLook: { yaw: number; pitch: number } | null = null;
@@ -123,6 +124,13 @@ class App {
     window.addEventListener('unhandledrejection', (event) => {
       this.errors.push(`unhandledrejection: ${String(event.reason)}`);
     });
+  }
+
+  private clearWakeNotice(): void {
+    if (this.wakeNoticeTimer !== null) {
+      window.clearTimeout(this.wakeNoticeTimer);
+      this.wakeNoticeTimer = null;
+    }
   }
 
   private async ensureAudio(): Promise<void> {
@@ -230,9 +238,22 @@ class App {
           );
           if (this.phase === 'connecting') this.setPhase('title');
         } else if (state === 'connected') {
+          this.clearWakeNotice();
           this.ui.setConnectionError(null);
         } else if (state === 'reconnecting') {
           this.ui.setStatus('Reconnecting…');
+          // A reconnect that drags on usually means a free-tier host is waking
+          // from idle, which takes up to a minute. Say so plainly rather than
+          // leaving a spinner that reads as broken.
+          if (this.wakeNoticeTimer === null) {
+            this.wakeNoticeTimer = window.setTimeout(() => {
+              if (this.net.connectionState === 'reconnecting') {
+                this.ui.setStatus(
+                  'Waking the server — free hosting sleeps when idle, so this can take up to a minute.',
+                );
+              }
+            }, 6000);
+          }
         }
       },
 
@@ -603,6 +624,7 @@ class App {
 
   dispose(): void {
     cancelAnimationFrame(this.rafHandle);
+    this.clearWakeNotice();
     this.teardownGame();
     this.input.detach();
     this.net.dispose();

@@ -6,7 +6,7 @@
   "description": "Veil Hunt — a 3D asymmetric two-player hide-and-hunt game for the browser",
   "license": "MIT",
   "engines": {
-    "node": ">=20.11"
+    "node": ">=20.19"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",

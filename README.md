@@ -62,6 +62,40 @@ npm run start
 single process on port `8787`, and prints its localhost and LAN URLs the same
 way. Set `PORT` or `VEIL_SERVER_PORT` to change it.
 
+## Hosting it online
+
+**Veil Hunt cannot run on serverless hosting** (Vercel, Netlify Functions,
+Cloudflare Workers). This is not a config problem — the authoritative simulation
+is a 60 Hz loop inside a long-lived process, and every room lives in that
+process's memory. Serverless functions are frozen between invocations, spread
+requests across instances, and cap execution duration, so the match timer would
+stop, two players could land on different instances and never meet, and a
+seven-minute round would outlive the function.
+
+It needs a host that runs **one persistent Node process**. The repo ships a
+[`render.yaml`](render.yaml) blueprint for [Render](https://render.com), whose
+free tier still supports WebSockets, long-running processes and in-memory state
+with no credit card:
+
+1. Push this repo to GitHub (already done if you cloned it from there).
+2. Render dashboard → **New** → **Blueprint** → select the repo.
+3. Render reads `render.yaml`, runs `npm ci && npm run build`, then
+   `npm run start`, and health-checks `/health`.
+4. Share the resulting `https://…onrender.com` URL and your room code.
+
+No environment variables or secrets are needed. The server already reads `PORT`
+and binds `0.0.0.0`, which is what Render requires.
+
+**Free-tier caveat:** the service sleeps after 15 minutes of inactivity and
+takes 30–60 seconds to wake. That shows up as a slow *first* page load — Render
+holds the request until the container is up, so by the time the game loads the
+server is live. The client also budgets 40 reconnection attempts and explains
+what is happening if a reconnect runs long. A paid instance ($7/month) does not
+sleep.
+
+Railway, Fly.io and Koyeb all work technically but no longer have a usable free
+tier as of 2026.
+
 ## All commands
 
 | Command | What it does |

@@ -65,10 +65,14 @@ export class NetClient {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 12,
+      // Budget generously. Free hosting tiers idle the container out and take
+      // 30-60s to wake, and the old 12-attempt budget (~40s) gave up right in
+      // the middle of that window. 40 attempts at up to 5s covers a cold start
+      // with room to spare.
+      reconnectionAttempts: 40,
       reconnectionDelay: 600,
-      reconnectionDelayMax: 4000,
-      timeout: 8000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
       autoConnect: true,
     });
     this.socket = socket;
