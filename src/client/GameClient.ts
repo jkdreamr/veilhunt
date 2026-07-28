@@ -134,6 +134,7 @@ export class GameClient {
   private readonly cameraTmp = new THREE.Vector3();
   private readonly playerTmp = new THREE.Vector3();
   private lastReadyFlash: Record<string, boolean> = {};
+  private aiming = false;
 
   constructor(private readonly options: GameClientOptions) {
     this.role = options.role;
@@ -375,6 +376,7 @@ export class GameClient {
       if (self.status.hasted > 0) scale *= WARD.runnerHasteFactor;
       if (self.status.breaching > 0) scale *= BREACH.recoverySlow;
       if (self.status.channeling > 0) scale *= 0.35;
+      if (this.aiming && this.role === 'hunter') scale *= 0.72;
       rooted = self.status.rooted > 0;
       stunned = self.status.stunned > 0;
       sprintLocked = self.staminaLocked || self.status.channeling > 0 || self.reloading > 0;
@@ -407,16 +409,24 @@ export class GameClient {
 
     // --- Local prediction --------------------------------------------------
     const intent = canAct
-      ? { mx: input.mx, mz: input.mz, sprint: input.sprint, crouch: input.crouch, vault: input.vault }
-      : { mx: 0, mz: 0, sprint: false, crouch: false, vault: false };
+      ? {
+          mx: input.mx,
+          mz: input.mz,
+          sprint: input.sprint,
+          crouch: input.crouch,
+          vault: input.vault,
+          aim: input.aim && this.role === 'hunter',
+        }
+      : { mx: 0, mz: 0, sprint: false, crouch: false, vault: false, aim: false };
 
+    this.aiming = intent.aim;
     this.predictor.predict(gameplayDt, intent, input.yaw, input.pitch, mods);
 
     // --- Send input at a fixed rate ---------------------------------------
     this.inputAccumulator += dt;
     if (this.inputAccumulator >= 1 / 30) {
       this.inputAccumulator = 0;
-      this.options.sendInput(this.predictor.unacknowledged());
+      this.options.sendInput(this.predictor.drainUnsent());
     }
 
     if (canAct) {
@@ -428,6 +438,7 @@ export class GameClient {
     const motion = this.predictor.motion;
 
     // --- Camera ------------------------------------------------------------
+    this.cameraRig.setAiming(this.aiming, dt);
     this.cameraRig.update(
       dt,
       motion.x,
@@ -527,7 +538,8 @@ export class GameClient {
       }
     }
 
-    if (kind === 'primary' && this.role === 'hunter') this.cameraRig.punchFov(3);
+    if (kind === 'secondary' && this.role === 'hunter') return;
+    if (kind === 'primary' && this.role === 'hunter') this.cameraRig.punchFov(this.aiming ? 1.5 : 3);
     if (kind === 'secondary' && this.role === 'hunter') this.cameraRig.addTrauma(0.14);
 
     this.options.sendAction({
@@ -542,7 +554,7 @@ export class GameClient {
     if (this.role === 'hunter') {
       switch (kind) {
         case 'primary':
-          return 'blade';
+          return this.aiming ? 'crossbow' : 'blade';
         case 'secondary':
           return 'crossbow';
         case 'ability1':

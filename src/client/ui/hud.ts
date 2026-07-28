@@ -180,7 +180,7 @@ const RUNNER_ABILITIES: AbilityDef[] = [
 
 const HUNTER_ABILITIES: AbilityDef[] = [
   { id: 'blade', name: 'Ritual Blade', short: 'Blade', key: 'LMB', icon: ICONS.blade, cooldown: BLADE_TOTAL },
-  { id: 'crossbow', name: 'Marking Crossbow', short: 'Bolt', key: 'RMB', icon: ICONS.crossbow, cooldown: CROSSBOW.fireCooldown, chargeKey: 'bolts', chargeMax: CROSSBOW.maxBolts, reload: true },
+  { id: 'crossbow', name: 'Marking Crossbow', short: 'Bolt', key: 'RMB\u2192LMB', icon: ICONS.crossbow, cooldown: CROSSBOW.fireCooldown, chargeKey: 'bolts', chargeMax: CROSSBOW.maxBolts, reload: true },
   { id: 'pulse', name: 'Tracking Pulse', short: 'Pulse', key: 'Q', icon: ICONS.pulse, cooldown: PULSE.cooldown },
   { id: 'snare', name: 'Snare', short: 'Snare', key: 'F', icon: ICONS.snare, cooldown: SNARE.placeCooldown, chargeKey: 'snares', chargeMax: SNARE.totalCharges },
 ];

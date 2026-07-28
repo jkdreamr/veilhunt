@@ -261,6 +261,45 @@ test.describe('combat rules', () => {
     expect((await state(runner)).wound).toBe('wounded');
   });
 
+  test('the Hunter aims and marks the Runner with a crossbow bolt', async () => {
+    const { hostRole, guestRole } = await startMatch(host.page, guest.page);
+    const { hunter, runner } = pagesByRole(
+      { page: host.page, role: hostRole },
+      { page: guest.page, role: guestRole },
+    );
+
+    // Put them together, then back the Hunter off into a genuine ranged shot.
+    await debugForce(hunter, 'placeAdjacent');
+    await hunter.waitForTimeout(300);
+    await look(hunter, Math.PI);
+    await move(hunter, 0, 1, { sprint: true });
+    await hunter.waitForTimeout(1300);
+    await stopMoving(hunter);
+    await look(hunter, 0);
+    await hunter.waitForTimeout(500);
+
+    const hunterAt = (await transform(hunter))!;
+    const runnerAt = (await transform(runner))!;
+    const range = Math.hypot(hunterAt.x - runnerAt.x, hunterAt.z - runnerAt.z);
+    expect(range, 'expected a ranged shot, not point blank').toBeGreaterThan(5);
+
+    expect((await snapshot(hunter))!.opponent.markedTrail).toBeNull();
+    const boltsBefore = (await state(hunter)).charges!.bolts;
+
+    // Primary only fires the crossbow while aiming; otherwise it swings the
+    // blade, which at this range would simply whiff.
+    await hunter.evaluate(() => window.__VEIL_HUNT_TEST__!.input.aim(true));
+    await hunter.waitForTimeout(400);
+    await pressAction(hunter, 'primary');
+
+    await expect
+      .poll(async () => (await snapshot(hunter))!.opponent.markedTrail !== null, { timeout: 10_000 })
+      .toBe(true);
+    expect((await state(hunter)).charges!.bolts).toBe(boltsBefore - 1);
+
+    await hunter.evaluate(() => window.__VEIL_HUNT_TEST__!.input.aim(false));
+  });
+
   test('a third landed hit captures the Runner and the Hunter wins', async () => {
     const { hostRole, guestRole } = await startMatch(host.page, guest.page);
     const { hunter, runner } = pagesByRole(

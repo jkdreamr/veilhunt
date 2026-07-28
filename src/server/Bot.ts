@@ -38,6 +38,9 @@ export class Bot {
   private repathTimer = 0;
   private wanderTarget: Waypoint | null = null;
   private actionTimer = 0;
+  /** Seconds of aim still to hold before and after loosing a bolt. */
+  private aimTimer = 0;
+  private shotPending = false;
 
   constructor(id: string, name: string, seed: number) {
     this.id = id;
@@ -180,9 +183,13 @@ export class Bot {
         if (d < 2.9 && (ctx.cooldowns.blade ?? 0) <= 0) {
           actions.push({ kind: 'primary', yaw: this.yaw, pitch: 0, seq: this.seq });
           this.actionTimer = 0.6;
-        } else if (d < 24 && d > 4 && (ctx.cooldowns.crossbow ?? 0) <= 0) {
-          actions.push({ kind: 'secondary', yaw: this.yaw, pitch: 0, seq: this.seq });
-          this.actionTimer = 1.2;
+        } else if (d < 24 && d > 4 && (ctx.cooldowns.crossbow ?? 0) <= 0 && this.aimTimer <= 0) {
+          // The Hunter must be aiming before primary fires the crossbow, and the
+          // server only learns that from a consumed input, so hold aim first and
+          // loose the bolt a few ticks later.
+          this.aimTimer = 0.5;
+          this.shotPending = true;
+          this.actionTimer = 1.4;
         }
       } else if (d < 16 && (ctx.cooldowns.smoke ?? 0) <= 0) {
         actions.push({ kind: 'ability2', yaw: this.yaw, pitch: 0, seq: this.seq });
@@ -194,6 +201,13 @@ export class Bot {
     } else if (this.actionTimer <= 0 && ctx.role === 'hunter' && (ctx.cooldowns.pulse ?? 0) <= 0) {
       actions.push({ kind: 'ability1', yaw: this.yaw, pitch: 0, seq: this.seq });
       this.actionTimer = 3;
+    }
+
+    this.aimTimer = Math.max(0, this.aimTimer - dt);
+    const aiming = this.aimTimer > 0;
+    if (this.shotPending && aiming && this.aimTimer < 0.35) {
+      actions.push({ kind: 'primary', yaw: this.yaw, pitch: 0, seq: this.seq });
+      this.shotPending = false;
     }
 
     // Stop walking into the objective while channelling it.
@@ -211,6 +225,7 @@ export class Bot {
       sprint: !channelling && distToGoal > 8 && ctx.opponentGuess !== null,
       crouch: false,
       vault: this.stuckTimer > 0.5,
+      aim: aiming,
     };
 
     return { input, actions };
@@ -227,6 +242,7 @@ export class Bot {
       sprint: false,
       crouch: false,
       vault: false,
+      aim: false,
     };
   }
 }

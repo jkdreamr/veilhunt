@@ -36,9 +36,17 @@ export class CameraRig {
   private fovPunch = 0;
   private initialised = false;
   private reducedShake = false;
+  private aimBlend = 0;
 
   constructor(private readonly camera: THREE.PerspectiveCamera) {
     this.baseFov = camera.fov;
+  }
+
+  /** 0 = hip, 1 = aiming down the crossbow. Blended, never snapped. */
+  setAiming(aiming: boolean, dt: number): void {
+    const target = aiming ? 1 : 0;
+    this.aimBlend += (target - this.aimBlend) * Math.min(1, 12 * dt);
+    if (Math.abs(this.aimBlend - target) < 0.002) this.aimBlend = target;
   }
 
   setReducedShake(value: boolean): void {
@@ -96,9 +104,10 @@ export class CameraRig {
     const sinPitch = Math.sin(pitch);
 
     // Offset the pivot to the shoulder so the player model does not sit dead
-    // centre and block the view down the corridor they are running.
-    const shoulderX = cosYaw * SHOULDER_OFFSET;
-    const shoulderZ = -sinYaw * SHOULDER_OFFSET;
+    // centre and block the view down the corridor they are running. Screen-right
+    // is (-cos, sin), matching the strafe basis in `stepMovement`.
+    const shoulderX = -cosYaw * SHOULDER_OFFSET;
+    const shoulderZ = sinYaw * SHOULDER_OFFSET;
     const pivotX = this.smoothTarget.x + shoulderX;
     const pivotY = this.smoothTarget.y;
     const pivotZ = this.smoothTarget.z + shoulderZ;
@@ -157,7 +166,7 @@ export class CameraRig {
       this.fovPunch *= Math.exp(-dt / 0.2);
       if (this.fovPunch < 0.001) this.fovPunch = 0;
     }
-    const targetFov = this.baseFov + this.fovPunch;
+    const targetFov = this.baseFov + this.fovPunch - this.aimBlend * 13;
     if (Math.abs(this.camera.fov - targetFov) > 0.01) {
       this.camera.fov = targetFov;
       this.camera.updateProjectionMatrix();

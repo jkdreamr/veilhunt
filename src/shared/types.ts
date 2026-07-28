@@ -411,6 +411,8 @@ export interface InputCommand {
   sprint: boolean;
   crouch: boolean;
   vault: boolean;
+  /** Hunter holds right mouse to aim the crossbow; primary then fires it. */
+  aim: boolean;
 }
 
 export type ActionKind =
@@ -479,6 +481,8 @@ export interface SelfState {
     healUsed: boolean;
   };
   /** Blade swing timeline, drives client animation. */
+  /** True while the Hunter is aiming down the crossbow. */
+  aiming: boolean;
   bladePhase: 'idle' | 'windup' | 'active' | 'recovery';
   bladePhaseRemaining: number;
   bolts: number;

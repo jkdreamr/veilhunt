@@ -67,8 +67,8 @@ Slower top speed, far better stamina, and the only player who can breach.
 
 | Kit | Bind | Behaviour |
 | --- | --- | --- |
-| Ritual Blade | LMB | 0.34 s wind-up, 3.3 m reach, 71° cone, no hits through walls. One wound per hit. |
-| Marking Crossbow | RMB | 3 bolts, a *visible slow* projectile that can be dodged. Does not wound — marks for 8 s and slows 16% for 3 s. Spent bolts stick in the world and can be recovered. |
+| Ritual Blade | LMB (not aiming) | 0.34 s wind-up, 3.3 m reach, 71° cone, no hits through walls. One wound per hit. |
+| Marking Crossbow | Hold RMB to aim, LMB to fire | 3 bolts, a *visible slow* projectile that can be dodged. Aiming narrows the view and slows you to 72%, so it is a commitment. Does not wound — marks for 8 s and slows 16% for 3 s. Effective to ~28 m before drop takes over. Spent bolts stick in the world and can be recovered. |
 | Tracking Pulse | Q | Reveals fresh footprints within 27 m for 4.5 s. Directional, never a wall-hack. 17 s cooldown. |
 | Snare | F | Three charges, max three live. Roots the Runner 1.5 s, then slows. The Runner escapes with a 1.2 s channel. |
 | Breach | E on a barricade | Forces a barricaded shortcut. Very loud, and self-slows for 1.5 s afterwards — pressure, not a teleport. |
@@ -85,8 +85,9 @@ audible breathing, a stronger magical seam glow, slower ritual channels
 playable throughout — Cursed is only 7% slower, because a Runner who cannot run
 is not playing a game.
 
-After every wound the Runner gets **3.2 s of protection**, longer than the blade
-cooldown, so the Hunter can never chain all three hits from one engagement.
+After every wound the Runner gets **4 s of protection**, comfortably longer than
+a full blade cycle (2.88 s), so the Hunter can never chain two wounds out of one
+engagement — the Runner always gets a beat to break away.
 
 **The shrine**, far south, removes one wound level once per match. It takes 9
 seconds, makes noise, and sits in a dead end. Healing is a real gamble.

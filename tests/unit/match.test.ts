@@ -30,7 +30,7 @@ function makeMatch(seed = 12345) {
 }
 
 function idle(seq: number, yaw = 0): InputCommand {
-  return { seq, dt: TICK_DT, mx: 0, mz: 0, yaw, pitch: 0, sprint: false, crouch: false, vault: false };
+  return { seq, dt: TICK_DT, mx: 0, mz: 0, yaw, pitch: 0, sprint: false, crouch: false, vault: false, aim: false };
 }
 
 function act(kind: ActionCommand['kind'], yaw = 0): ActionCommand {
@@ -55,6 +55,17 @@ function state(match: Match) {
     entityCounts: Record<string, number>;
     players: { id: string; role: string; wound: string; x: number; y: number; z: number; cooldowns: Record<string, number> }[];
   };
+}
+
+/**
+ * Raises the crossbow and looses a bolt. The server only learns the Hunter is
+ * aiming from a consumed input, so aim has to be established before firing.
+ */
+function aimAndFire(match: Match, seq: number): void {
+  const hunter = match.getMotion('H')!;
+  match.enqueueInput('H', [{ ...idle(seq, hunter.yaw), aim: true }]);
+  match.tick(TICK_DT);
+  match.handleAction('H', act('primary', hunter.yaw));
 }
 
 /** Places both players adjacent so blade tests have a legal target. */
@@ -154,7 +165,7 @@ describe('movement authority', () => {
     for (let i = 0; i < 900; i += 1) {
       const yaw = (i * 0.37) % (Math.PI * 2);
       match.enqueueInput('R', [
-        { seq: seq++, dt: TICK_DT, mx: Math.sin(i), mz: Math.cos(i), yaw, pitch: 0, sprint: i % 3 === 0, crouch: i % 7 === 0, vault: i % 11 === 0 },
+        { seq: seq++, dt: TICK_DT, mx: Math.sin(i), mz: Math.cos(i), yaw, pitch: 0, sprint: i % 3 === 0, crouch: i % 7 === 0, vault: i % 11 === 0, aim: false },
       ]);
       match.tick(TICK_DT);
     }
@@ -337,7 +348,7 @@ describe('crossbow marking', () => {
     hunter.yaw = 0;
     hunter.pitch = 0;
 
-    match.handleAction('H', act('secondary'));
+    aimAndFire(match, 1);
     run(match, 0.6);
 
     const marked = match.buildSnapshot('H')!;
@@ -355,7 +366,7 @@ describe('crossbow marking', () => {
     hunter.pitch = 0.5; // shoot into the air so nothing is hit
 
     for (let i = 0; i < CROSSBOW.maxBolts; i += 1) {
-      match.handleAction('H', act('secondary'));
+      aimAndFire(match, i + 1);
       run(match, CROSSBOW.fireCooldown + 0.05);
     }
     expect(match.buildSnapshot('H')!.self.bolts).toBe(0);

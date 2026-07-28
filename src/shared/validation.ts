@@ -96,6 +96,7 @@ export function parseInputCommand(payload: unknown): InputCommand | null {
     sprint: payload.sprint === true,
     crouch: payload.crouch === true,
     vault: payload.vault === true,
+    aim: payload.aim === true,
   };
 }
 

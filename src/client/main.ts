@@ -70,6 +70,7 @@ class App {
   private testIntent: { mx: number; mz: number; sprint: boolean; crouch: boolean } | null = null;
   private testLook: { yaw: number; pitch: number } | null = null;
   private testInteract: boolean | null = null;
+  private testAim = false;
   private testActions: string[] = [];
   private testVault = false;
 
@@ -513,6 +514,7 @@ class App {
       merged.yaw = this.testLook.yaw;
       merged.pitch = this.testLook.pitch;
     }
+    if (this.testAim) merged.aim = true;
     if (this.testVault) {
       merged.vault = true;
       this.testVault = false;
@@ -556,6 +558,9 @@ class App {
       },
       setInteract: (held) => {
         this.testInteract = held;
+      },
+      setAim: (held) => {
+        this.testAim = held;
       },
       triggerVault: () => {
         this.testVault = true;

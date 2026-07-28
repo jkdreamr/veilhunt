@@ -712,7 +712,7 @@ export function createTutorialScreen(ctx: ScreenContext): TutorialScreen {
            <h2 class="tut-role">HUNTER</h2>
            <ul class="kit">
              ${kitRow(GLYPH.goal, 'Objective', 'Catch the Runner before the seals burn, or simply outlast the clock.')}
-             ${kitRow(GLYPH.kit, 'Kit', `Ritual Blade (LMB) &middot; Crossbow &times;${CROSSBOW.maxBolts} (RMB) &middot; Tracking Pulse (Q) &middot; Snare &times;${SNARE.totalCharges} (F)`)}
+             ${kitRow(GLYPH.kit, 'Kit', `Ritual Blade (LMB) &middot; Crossbow &times;${CROSSBOW.maxBolts} (hold RMB to aim, LMB to fire) &middot; Tracking Pulse (Q) &middot; Snare &times;${SNARE.totalCharges} (F)`)}
              ${kitRow(GLYPH.eye, 'Read the ruins', 'Pulse reveals fresh footprints. A marked Runner leaves a trail.')}
              ${kitRow(GLYPH.clock, 'Pressure', 'Every seal lit is ground lost. Guard the gate late.')}
            </ul>
@@ -759,8 +759,8 @@ const CONTROLS: [string, string][] = [
   ['Ctrl / C', 'Crouch — quieter, harder to see'],
   ['Space', 'Vault low obstacles'],
   ['Hold E', 'Interact / channel a ritual'],
-  ['LMB', 'Primary — Ritual Blade / Throw Stone'],
-  ['RMB', 'Secondary — Crossbow / Flash Ward'],
+  ['LMB', 'Ritual Blade — or fire the crossbow while aiming / Throw Stone'],
+  ['RMB', 'Hold to aim the crossbow / Place a Flash Ward'],
   ['Q', 'Ability — Tracking Pulse / Echo Decoy'],
   ['F', 'Ability — Snare / Veil Smoke'],
   ['R', 'Reload the crossbow'],

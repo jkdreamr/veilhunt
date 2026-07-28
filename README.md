@@ -122,7 +122,7 @@ tier as of 2026.
 
 | | Left click | Right click | `Q` | `F` | `R` |
 | --- | --- | --- | --- | --- | --- |
-| **Hunter** | Ritual Blade | Marking Crossbow | Tracking Pulse | Snare | Reload |
+| **Hunter** | Ritual Blade — or fire the crossbow while aiming | Hold to aim the crossbow | Tracking Pulse | Snare | Reload |
 | **Runner** | Throw stone | Flash Ward | Echo Decoy | Veil Smoke | — |
 
 Standard gamepads are supported for movement, look and the main actions.
@@ -149,7 +149,8 @@ one wound — but it takes nine seconds, makes noise, and sits in a dead end.
 
 **As the Hunter** you are relentless rather than fast. You have a **Ritual
 Blade** with a visible wind-up and a real recovery, a **Marking Crossbow** with
-three dodgeable bolts that mark rather than wound, a **Tracking Pulse** that
+three dodgeable bolts that mark rather than wound — hold right mouse to raise it,
+then left mouse to loose the bolt, a **Tracking Pulse** that
 lights up recent footprints, three **Snares**, and the ability to **Breach**
 barricaded shortcuts — loudly.
 

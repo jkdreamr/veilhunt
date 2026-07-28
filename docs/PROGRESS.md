@@ -108,6 +108,32 @@ Vfx), `ui/` (Ui, screens, hud), `test/hooks.ts`.
     points the server at it with `VEIL_CLIENT_DIR`; `dist/client` compiles the
     guard to `false` and exposes neither global at runtime.
 
+## Bugs found by playing it (post-release pass)
+
+16. **A and D were inverted at every yaw.** `stepMovement` derived screen-right
+    as `(cos, -sin)` when the camera basis makes it `(-cos, sin)`, so strafe was
+    mirrored everywhere. Confirmed by dotting the movement vector against a real
+    Three.js camera basis (dot = -1.00 at every angle tested), not by reasoning.
+    `movement.test.ts` now pins it against that same basis.
+17. **Movement stalled entirely above ~120 fps.** The client sent only the last
+    12 *unacknowledged* commands each tick. Once the queue outgrew that cap the
+    oldest entries were truncated off the front — never sent, so never acked, so
+    never dropped. The backlog ran away permanently and the client applied
+    movement the server never saw, so reconciliation dragged the player back
+    every snapshot. Commands are now transmitted exactly once (Socket.IO is
+    reliable and ordered) and the batch cap has real headroom. Bot playtest
+    softlock windows went 1 -> 0 and the backlog peaks at 13.
+18. **45% of perfectly aimed crossbow shots missed.** A bolt covers 1.00 m per
+    30 Hz tick against a 0.72 m hit radius, so the per-tick point test tunnelled
+    straight through the Runner. Replaced with a swept segment-vs-capsule test.
+19. **The crossbow could not reach.** Bolt gravity of 9.2 put shots in the dirt
+    by ~18 m, far short of the 46 m sight range, so they silently vanished.
+    Now an explicit `CROSSBOW.gravity` of 3 with a documented 28 m effective
+    range, still dropping enough to reward aiming high at distance.
+20. **The Hunter could not aim.** Right mouse fired instantly from the hip. Now
+    hold RMB to raise the crossbow (narrower FOV, 72% move speed) and LMB to
+    loose the bolt; LMB still swings the blade when not aiming.
+
 ## Verification log
 
 - `npm run typecheck` — clean (client + server)

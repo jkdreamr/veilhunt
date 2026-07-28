@@ -25,6 +25,7 @@ export class Predictor {
   private pending: InputCommand[] = [];
   private nextSeq = 1;
   private lastAck = 0;
+  private lastSentSeq = 0;
   private corrections = 0;
   private snaps = 0;
   private lastError = 0;
@@ -64,7 +65,7 @@ export class Predictor {
    */
   predict(
     dt: number,
-    intent: { mx: number; mz: number; sprint: boolean; crouch: boolean; vault: boolean },
+    intent: { mx: number; mz: number; sprint: boolean; crouch: boolean; vault: boolean; aim: boolean },
     yaw: number,
     pitch: number,
     mods: MovementModifiers,
@@ -79,14 +80,13 @@ export class Predictor {
       sprint: intent.sprint,
       crouch: intent.crouch,
       vault: intent.vault,
+      aim: intent.aim,
     };
 
     stepMovement(this.motion, command, this.world, this.role, mods);
     this.pending.push(command);
-    // Never bank more than the server will accept in one batch.
-    if (this.pending.length > MAX_INPUT_BACKLOG * 4) {
-      this.pending.splice(0, this.pending.length - MAX_INPUT_BACKLOG * 4);
-    }
+    // Replay buffer only; a long stall should not grow it without bound.
+    if (this.pending.length > 240) this.pending.splice(0, this.pending.length - 240);
     return command;
   }
 
@@ -143,10 +143,29 @@ export class Predictor {
     else if (errorBefore > IGNORE_THRESHOLD) this.corrections += 1;
   }
 
-  /** Inputs the server has not acknowledged, capped to one legal batch. */
-  unacknowledged(): InputCommand[] {
-    if (this.pending.length <= MAX_INPUT_BACKLOG) return this.pending.slice();
-    return this.pending.slice(this.pending.length - MAX_INPUT_BACKLOG);
+  /**
+   * Returns commands that have not been transmitted yet and marks them sent.
+   *
+   * This used to return the last N *unacknowledged* commands every tick. Above
+   * roughly 120 fps the client produces commands faster than acknowledgements
+   * arrive, so the queue outgrew the batch cap and the oldest entries were
+   * silently truncated off the front — never sent, therefore never acked,
+   * therefore never dropped from the queue. The backlog ran away and the client
+   * permanently applied movement the server never saw, so reconciliation yanked
+   * the player backwards every snapshot and they appeared stuck.
+   *
+   * Socket.IO is reliable and ordered, so each command only needs to go once.
+   */
+  drainUnsent(): InputCommand[] {
+    const out: InputCommand[] = [];
+    for (const command of this.pending) {
+      if (command.seq > this.lastSentSeq) out.push(command);
+    }
+    if (out.length === 0) return out;
+    this.lastSentSeq = out[out.length - 1].seq;
+    // A pathological frame hitch could still overflow one batch; prefer the
+    // newest commands in that case, since stale motion matters least.
+    return out.length > MAX_INPUT_BACKLOG ? out.slice(out.length - MAX_INPUT_BACKLOG) : out;
   }
 
   get acknowledgedSeq(): number {
@@ -156,6 +175,7 @@ export class Predictor {
   reset(motion: PlayerMotion): void {
     Object.assign(this.motion, motion);
     this.pending.length = 0;
+    this.lastSentSeq = 0;
     this.corrections = 0;
     this.snaps = 0;
     this.lastError = 0;

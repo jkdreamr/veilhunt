@@ -129,10 +129,16 @@ export function stepMovement(
 
   // Camera-relative desired velocity. Input is already in camera space; yaw
   // rotates it into world space.
+  //
+  // Forward for a given yaw is (sin, cos). The camera sits behind the player
+  // looking along that forward, so what the player sees as "right" on screen is
+  // (-cos, sin) — the camera's local +X axis, not (cos, -sin). Getting this
+  // backwards inverts A and D at every yaw, so `movement.test.ts` pins the
+  // strafe direction against a real Three.js camera basis.
   const sinY = Math.sin(motion.yaw);
   const cosY = Math.cos(motion.yaw);
-  const wishX = (mx * cosY + mz * sinY) * maxSpeed;
-  const wishZ = (-mx * sinY + mz * cosY) * maxSpeed;
+  const wishX = (-mx * cosY + mz * sinY) * maxSpeed;
+  const wishZ = (mx * sinY + mz * cosY) * maxSpeed;
 
   const accel = motion.grounded ? ACCEL_GROUND : ACCEL_AIR;
   if (moving && !rooted && !stunned) {

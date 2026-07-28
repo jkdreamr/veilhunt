@@ -9,8 +9,12 @@ export const TICK_DT = 1 / TICK_HZ;
 export const SNAPSHOT_HZ = 20;
 export const INPUT_SEND_HZ = 30;
 
-/** Maximum inputs a client may bank up before the server discards the excess. */
-export const MAX_INPUT_BACKLOG = 12;
+/**
+ * Largest batch of input commands accepted in one message. High-refresh
+ * displays produce commands faster than snapshots acknowledge them, so this
+ * needs real headroom for frame hitches.
+ */
+export const MAX_INPUT_BACKLOG = 48;
 /** Largest dt the server will honour from a single input command, in seconds. */
 export const MAX_INPUT_DT = 0.1;
 
@@ -140,6 +144,15 @@ export const CROSSBOW = {
   projectileSpeed: 30,
   projectileRadius: 0.22,
   projectileLife: 2.6,
+  /**
+   * Bolt drop. Well below real gravity: at 9.2 the bolt hit the ground around
+   * 18m, far short of the sight range, so shots silently vanished into the dirt.
+   * At 3.0 it flies usefully to roughly 30m while still dropping enough that
+   * long shots reward aiming a little high.
+   */
+  gravity: 3,
+  /** Range within which a level shot is guaranteed to still be above the feet. */
+  effectiveRange: 28,
   markDuration: 8,
   slowDuration: 3,
   slowFactor: 0.84,

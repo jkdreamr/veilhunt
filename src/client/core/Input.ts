@@ -16,6 +16,8 @@ export interface MoveIntent {
 }
 
 export interface InputSnapshot extends MoveIntent {
+  /** Right mouse held — the Hunter aims the crossbow. */
+  aim: boolean;
   yaw: number;
   pitch: number;
   /** Discrete actions triggered this frame. */
@@ -50,6 +52,8 @@ export class InputController {
   private invertY = false;
   private lastGamepadButtons = new Map<number, boolean>();
   private padInteract = false;
+  private aimHeld = false;
+  private mouseAimHeld = false;
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (!this.enabled) return;
@@ -97,7 +101,18 @@ export class InputController {
   private readonly onMouseDown = (event: MouseEvent): void => {
     if (!this.enabled || !this.locked) return;
     if (event.button === 0) this.actionQueue.push('primary');
-    else if (event.button === 2) this.actionQueue.push('secondary');
+    else if (event.button === 2) {
+      this.aimHeld = true;
+      this.mouseAimHeld = true;
+      this.actionQueue.push('secondary');
+    }
+  };
+
+  private readonly onMouseUp = (event: MouseEvent): void => {
+    if (event.button === 2) {
+      this.aimHeld = false;
+      this.mouseAimHeld = false;
+    }
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
@@ -124,6 +139,7 @@ export class InputController {
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mousedown', this.onMouseDown);
+    window.addEventListener('mouseup', this.onMouseUp);
     window.addEventListener('blur', this.onBlur);
     document.addEventListener('pointerlockchange', this.onPointerLockChange);
     this.target.addEventListener('contextmenu', this.onContextMenu);
@@ -134,6 +150,7 @@ export class InputController {
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mousedown', this.onMouseDown);
+    window.removeEventListener('mouseup', this.onMouseUp);
     window.removeEventListener('blur', this.onBlur);
     document.removeEventListener('pointerlockchange', this.onPointerLockChange);
     this.target.removeEventListener('contextmenu', this.onContextMenu);
@@ -180,6 +197,8 @@ export class InputController {
 
   private releaseAll(): void {
     this.pressed.clear();
+    this.aimHeld = false;
+    this.mouseAimHeld = false;
     if (this.interact) {
       this.interact = false;
       this.actionQueue.push('interactStop');
@@ -191,7 +210,7 @@ export class InputController {
     return false;
   }
 
-  private pollGamepad(): { mx: number; mz: number; sprint: boolean; crouch: boolean } | null {
+  private pollGamepad(): { mx: number; mz: number; sprint: boolean; crouch: boolean; aim: boolean } | null {
     if (typeof navigator.getGamepads !== 'function') return null;
     const pads = navigator.getGamepads();
     for (const pad of pads) {
@@ -238,6 +257,7 @@ export class InputController {
         mz,
         sprint: pad.buttons[10]?.pressed === true,
         crouch: pad.buttons[11]?.pressed === true,
+        aim: pad.buttons[6]?.pressed === true,
       };
     }
     return null;
@@ -264,6 +284,8 @@ export class InputController {
       if (Math.abs(pad.mz) > Math.abs(mz)) mz = pad.mz;
       sprint = sprint || pad.sprint;
       crouch = crouch || pad.crouch;
+      if (pad.aim) this.aimHeld = true;
+      else if (!this.mouseAimHeld) this.aimHeld = false;
     }
 
     const actions = this.actionQueue.slice();
@@ -275,6 +297,7 @@ export class InputController {
       sprint,
       crouch,
       vault,
+      aim: this.enabled && this.aimHeld,
       yaw: this.yawValue,
       pitch: this.pitchValue,
       actions,
@@ -292,8 +315,8 @@ export const CONTROL_REFERENCE: { keys: string; action: string }[] = [
   { keys: 'Ctrl / C', action: 'Crouch' },
   { keys: 'Space', action: 'Vault' },
   { keys: 'E', action: 'Interact (hold)' },
-  { keys: 'Left click', action: 'Blade / throw stone' },
-  { keys: 'Right click', action: 'Crossbow / place ward' },
+  { keys: 'Left click', action: 'Blade, or fire crossbow while aiming / throw stone' },
+  { keys: 'Right click', action: 'Hold to aim crossbow / place ward' },
   { keys: 'Q', action: 'Tracking pulse / Echo decoy' },
   { keys: 'F', action: 'Snare / Veil smoke' },
   { keys: 'R', action: 'Reload crossbow' },

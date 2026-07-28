@@ -49,6 +49,7 @@ test.describe('bot playtest', () => {
         minCooldown: number;
         entityTotal: number;
         nonBlank: boolean;
+        pendingInputs: number;
         geometries: number;
         textures: number;
       }[] = [];
@@ -97,6 +98,7 @@ test.describe('bot playtest', () => {
               snap.banners.length
             : 0;
           const renderer = api.renderer();
+          const net = api.net();
           return {
             x: t?.x ?? Number.NaN,
             y: t?.y ?? Number.NaN,
@@ -106,6 +108,7 @@ test.describe('bot playtest', () => {
             minCooldown: Math.min(0, ...Object.values(cooldowns)),
             entityTotal: entities,
             nonBlank: api.canvas().nonBlank,
+            pendingInputs: net?.pending ?? 0,
             geometries: renderer.geometries ?? 0,
             textures: renderer.textures ?? 0,
             phase: s.phase,
@@ -124,6 +127,13 @@ test.describe('bot playtest', () => {
         expect(reading.y, `launched out of the world at step ${step}`).toBeLessThan(20);
         expect(reading.minCooldown, `negative cooldown at step ${step}`).toBeGreaterThanOrEqual(0);
         expect(reading.entityTotal, `entity growth at step ${step}`).toBeLessThan(200);
+        // A runaway input backlog means commands are never reaching the server,
+        // so reconciliation drags the player backwards every snapshot and they
+        // feel stuck. This is what shipped broken above ~120 fps.
+        expect(
+          reading.pendingInputs,
+          `input backlog running away at step ${step}`,
+        ).toBeLessThan(60);
 
         if (reading.phase === 'results') break;
       }
@@ -178,6 +188,7 @@ test.describe('bot playtest', () => {
         geometryGrowth,
         textureGrowth,
         blankSamples,
+        maxPendingInputs: Math.max(...samples.map((x) => x.pendingInputs)),
         consoleErrors: client.errors,
         samples,
       };

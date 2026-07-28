@@ -24,6 +24,7 @@ export interface TestHookHost {
   setMoveIntent(mx: number, mz: number, sprint: boolean, crouch: boolean): void;
   setLook(yaw: number, pitch: number): void;
   setInteract(held: boolean): void;
+  setAim(held: boolean): void;
   triggerVault(): void;
   createRoom(name: string, seed?: number): void;
   joinRoom(name: string, code: string): void;
@@ -68,6 +69,8 @@ export interface VeilHuntTestApi {
     move(mx: number, mz: number, opts?: { sprint?: boolean; crouch?: boolean }): void;
     look(yaw: number, pitch?: number): void;
     interact(held: boolean): void;
+    /** Hold the Hunter aim so primary fires the crossbow. */
+    aim(held: boolean): void;
     vault(): void;
     action(kind: string): void;
     stop(): void;
@@ -143,6 +146,9 @@ export function installTestHooks(host: TestHookHost): () => void {
       interact(held) {
         host.setInteract(held);
       },
+      aim(held) {
+        host.setAim(held);
+      },
       vault() {
         host.triggerVault();
       },
@@ -152,6 +158,7 @@ export function installTestHooks(host: TestHookHost): () => void {
       stop() {
         host.setMoveIntent(0, 0, false, false);
         host.setInteract(false);
+        host.setAim(false);
       },
     },
 

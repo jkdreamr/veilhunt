@@ -126,6 +126,7 @@ interface PlayerRuntime {
   reloading: number;
   snareCharges: number;
   wardCharges: number;
+  aiming: boolean;
   bladePhase: 'idle' | 'windup' | 'active' | 'recovery';
   bladeTimer: number;
   bladeConsumed: boolean;
@@ -318,6 +319,7 @@ export class Match {
       reloading: 0,
       snareCharges: SNARE.totalCharges,
       wardCharges: WARD.charges,
+      aiming: false,
       bladePhase: 'idle',
       bladeTimer: 0,
       bladeConsumed: false,
@@ -418,8 +420,9 @@ export class Match {
       if (cmd.seq <= player.ackSeq) continue;
       player.inputs.push(cmd);
     }
-    // Bound the queue so a client cannot bank motion and burst it later.
-    if (player.inputs.length > 24) player.inputs.splice(0, player.inputs.length - 24);
+    // Bound the queue so a client cannot bank motion and burst it later. Sized
+    // above one legal batch so normal high-refresh play is never truncated.
+    if (player.inputs.length > 96) player.inputs.splice(0, player.inputs.length - 96);
   }
 
   setConnected(playerId: string, connected: boolean): void {
@@ -546,6 +549,7 @@ export class Match {
     if (player.hasted > 0) scale *= WARD.runnerHasteFactor;
     if (player.breachRecovery > 0) scale *= BREACH.recoverySlow;
     if (player.channel.kind !== 'none' && player.channel.kind !== 'snareEscape') scale *= 0.35;
+    if (player.aiming && player.role === 'hunter') scale *= 0.72;
 
     const lunge =
       player.bladePhase === 'active' && !player.bladeConsumed ? BLADE.lungeSpeed * TICK_DT * 6 : 0;
@@ -580,10 +584,12 @@ export class Match {
         sprint: false,
         crouch: player.motion.crouching,
         vault: false,
+        aim: player.aiming,
       };
       stepMovement(player.motion, idle, this.world, player.role, mods);
     } else {
       for (const cmd of player.inputs) {
+        player.aiming = cmd.aim === true;
         const step = stepMovement(player.motion, cmd, this.world, player.role, mods);
         if (step.vaulted) {
           this.emitSound('vault', player.motion.x, player.motion.z, 14, player.id);
@@ -616,12 +622,19 @@ export class Match {
         player.interactHeld = false;
         break;
       case 'primary':
-        if (player.role === 'hunter') this.startBlade(player);
-        else this.throwNoise(player);
+        // Aiming turns the primary into a crossbow shot, so the Hunter lines up
+        // a marking bolt instead of swinging at empty air.
+        if (player.role === 'hunter') {
+          if (player.aiming) this.fireCrossbow(player);
+          else this.startBlade(player);
+        } else {
+          this.throwNoise(player);
+        }
         break;
       case 'secondary':
-        if (player.role === 'hunter') this.fireCrossbow(player);
-        else this.placeWard(player);
+        // For the Hunter this is the aim press itself, handled by the input
+        // flag; only the Runner has a discrete secondary.
+        if (player.role === 'runner') this.placeWard(player);
         break;
       case 'ability1':
         if (player.role === 'hunter') this.trackingPulse(player);
@@ -962,7 +975,7 @@ export class Match {
       const prevX = bolt.x;
       const prevY = bolt.y;
       const prevZ = bolt.z;
-      bolt.vy -= 9.2 * dt;
+      bolt.vy -= CROSSBOW.gravity * dt;
       bolt.x += bolt.vx * dt;
       bolt.y += bolt.vy * dt;
       bolt.z += bolt.vz * dt;
@@ -970,10 +983,34 @@ export class Match {
       let stop = false;
 
       if (runner) {
-        const d = Math.hypot(bolt.x - runner.motion.x, bolt.z - runner.motion.z);
-        const withinHeight =
-          bolt.y > runner.motion.y - 0.2 && bolt.y < runner.motion.y + (runner.motion.crouching ? 1.2 : 1.9);
-        if (d < CROSSBOW.projectileRadius + 0.5 && withinHeight) {
+        // Swept test. A bolt covers a full metre per 30 Hz tick, so a per-tick
+        // point check against a 0.72 m radius tunnelled straight through the
+        // Runner and missed roughly 45% of perfectly aimed shots. Sweep this
+        // tick's segment against the Runner's vertical capsule instead.
+        const hitRadius = CROSSBOW.projectileRadius + 0.5;
+        const capsuleBottom = runner.motion.y - 0.2;
+        const capsuleTop = runner.motion.y + (runner.motion.crouching ? 1.2 : 1.9);
+
+        const segX = bolt.x - prevX;
+        const segY = bolt.y - prevY;
+        const segZ = bolt.z - prevZ;
+        const relX = prevX - runner.motion.x;
+        const relZ = prevZ - runner.motion.z;
+
+        // Closest approach in the horizontal plane, clamped to this tick's span.
+        const horizLenSq = segX * segX + segZ * segZ;
+        let travel = horizLenSq > 1e-9 ? -(relX * segX + relZ * segZ) / horizLenSq : 0;
+        travel = travel < 0 ? 0 : travel > 1 ? 1 : travel;
+
+        const nearestX = relX + segX * travel;
+        const nearestZ = relZ + segZ * travel;
+        const nearestY = prevY + segY * travel;
+
+        if (
+          Math.hypot(nearestX, nearestZ) < hitRadius &&
+          nearestY > capsuleBottom &&
+          nearestY < capsuleTop
+        ) {
           runner.marked = CROSSBOW.markDuration;
           runner.slowed = CROSSBOW.slowDuration;
           runner.slowFactor = CROSSBOW.slowFactor;
@@ -1586,6 +1623,7 @@ export class Match {
         concealed: conceal.concealed,
         healUsed: player.healUsed,
       },
+      aiming: player.aiming,
       bladePhase: player.bladePhase,
       bladePhaseRemaining: player.bladeTimer,
       bolts: player.bolts,
